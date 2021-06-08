@@ -18,41 +18,23 @@ from tqdm import tqdm
 import tensorflow as tf
 
 from transformers import BertConfig,TFBertModel,BertTokenizer
-
+from SupportClasses import CleanData
 
 
 filename = 'TESTfile.csv'
 #, nrows=50
 df = pd.read_csv(filename, encoding='latin-1')
-df=df.rename(columns = {'Text':'text'})
+
+#df=df.rename(columns = {'Text':'text'})
+
+df['Text']=CleanData.cleanAllSample(df['Text'])
 
 
 nltk.download('punkt')
-def remove_content(text):
-    text = re.sub(r"http\S+", "", text) #remove urls
-    text=re.sub(r'\S+\.com\S+','',text) #remove urls
-    text=re.sub(r'\@\w+','',text) #remove mentions
-    text =re.sub(r'\#\w+','',text) #remove hashtags
-    return text
-def process_text(text, stem=False): #clean text
-    text=remove_content(text)
-    text = re.sub('[^A-Za-z]', ' ', text.lower()) #remove non-alphabets
-    tokenized_text = word_tokenize(text) #tokenize
-    stop =set( stopwords.words('english'))
-    stopnew_stopwords = ['rt', 'amp', 'im','https', 'wasnt']
-    stop = stop.union( stopnew_stopwords)
-    clean_text = [
-         word for word in tokenized_text
-         if word not in stop
-    ]
-    if stem:
-        clean_text=[stemmer.stem(word) for word in clean_text]
-    return ' '.join(clean_text)
-df['text']=df['text'].apply(lambda x: process_text(x))
-df['text']=df['text'].apply(lambda x: remove_content(x))
-df['text']=df['text'].apply(lambda x: " ".join([Word(word).lemmatize() for word in str(x).split()]))
 
-####### make labels (0: no hate speech) (1: has hate speech)
+
+
+####### Change labels into 1=hate and 0=natural(no hate)
 df.loc[(df.label == 1),'label']=2
 df.loc[(df.label == 0),'label']=1
 df.loc[(df.label == 2),'label']=0
@@ -102,7 +84,7 @@ def compute_input_arrays(df, columns, tokenizer, max_sequence_length):
     input_ids_q, input_masks_q, input_segments_q = [], [], []
     input_ids_a, input_masks_a, input_segments_a = [], [], []
     for _, instance in tqdm(df[columns].iterrows()):
-        t, q, a = instance.text, instance.text, instance.text
+        t, q, a = instance.Text, instance.Text, instance.Text
 
         ids_q, masks_q, segments_q, ids_a, masks_a, segments_a = \
         _convert_to_transformer_inputs(t, q, a, tokenizer, max_sequence_length)
@@ -123,17 +105,11 @@ def compute_input_arrays(df, columns, tokenizer, max_sequence_length):
 
 def compute_output_arrays(df, columns):
     return np.asarray(df[columns])
-######################################
-
-
-
 
 
 ##################### load tokenizer
 tokenizer = BertTokenizer.from_pretrained('olid_results/tokenizer/')
-
-
-
+print('BertTokenizer Loaded')
 ####################################
 output_categories = list(df.columns[[2]])
 input_categories = list(df.columns[[1]])
@@ -173,7 +149,7 @@ x = tf.keras.layers.Dense(TARGET_COUNT, activation='sigmoid')(x)
 model = tf.keras.models.Model(inputs=[q_id, q_mask, q_atn, ], outputs=x)
 model.load_weights('olid_results/'+MODEL_TYPE+'.h5')
 
-
+print('Model Loaded')
 #################################
 
 
@@ -191,12 +167,11 @@ print(confusion_matrix(test_outputs, y_preds))
 
 #################################
 ############## test on one sample
-# 1 means hate and 0 means natural (no hate) 
-
+#Pridict classes: 1=hate and 0=natural(no hate)
 #1st sample
 Sample = "O racist, you are not ashamed of yourself!"
-dfsample = pd.DataFrame(data={'text':[Sample]})
-
+dfsample = pd.DataFrame(data={'Text':[Sample]})
+dfsample['Text']=CleanData.cleanAllSample(dfsample['Text'])
 input_categories_sample = list(dfsample.columns[[0]])
 test_inputs_sample = compute_input_arrays(dfsample, input_categories_sample, tokenizer, MAX_SEQUENCE_LENGTH)
 
@@ -208,8 +183,8 @@ print('#################')
 ########################
 #2end sample
 Sample = "What kind of human you are ?!"
-dfsample = pd.DataFrame(data={'text':[Sample]})
-
+dfsample = pd.DataFrame(data={'Text':[Sample]})
+dfsample['Text']=CleanData.cleanAllSample(dfsample['Text'])
 input_categories_sample = list(dfsample.columns[[0]])
 test_inputs_sample = compute_input_arrays(dfsample, input_categories_sample, tokenizer, MAX_SEQUENCE_LENGTH)
 
@@ -218,4 +193,27 @@ y_preds_sample =np.round(y_preds_test_sample)
 print('#################')
 print('The prediction of the sample: {',Sample,'} is ',y_preds_sample[0][0])
 print('#################')
+
+
+###########################  Riza's file sample
+input_file = open('input_text.txt', 'r')
+lines = input_file.readlines()
+input_file.close()
+
+sample = ''
+for line in lines:
+    sample = sample + line.strip()
+
+print('INPUT TEXT: ' + sample)
+
+dfsample = pd.DataFrame(data={'Text':[sample]})
+dfsample['cleanedText']=CleanData.cleanAllSample(dfsample['Text'])
+
+#Pridict classes: 1=hate and 0=natural(no hate)
+
+y_preds_sample =np.round(model.predict(test_inputs_sample)) #BERT
+if y_preds_sample[0][0] == 1:
+    print('Input text contains hate')
+else:
+    print('Input text does not contain hate')
 
