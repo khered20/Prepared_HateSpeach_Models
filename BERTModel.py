@@ -20,7 +20,7 @@ import tensorflow as tf
 from transformers import BertConfig,TFBertModel,BertTokenizer
 from SupportClasses import CleanData
 
-
+DSname='english_hasoc2019'
 filename = 'TESTfile.csv'
 #, nrows=50
 df = pd.read_csv(filename, encoding='latin-1')
@@ -108,7 +108,7 @@ def compute_output_arrays(df, columns):
 
 
 ##################### load tokenizer
-tokenizer = BertTokenizer.from_pretrained('olid_results/tokenizer/')
+tokenizer = BertTokenizer.from_pretrained('_'+DSname+'_results/'+MODEL_TYPE+'_tokenizer/')
 print('BertTokenizer Loaded')
 ####################################
 output_categories = list(df.columns[[2]])
@@ -147,7 +147,7 @@ x = tf.keras.layers.Dropout(0.2)(q)
 x = tf.keras.layers.Dense(TARGET_COUNT, activation='sigmoid')(x)
 
 model = tf.keras.models.Model(inputs=[q_id, q_mask, q_atn, ], outputs=x)
-model.load_weights('olid_results/'+MODEL_TYPE+'.h5')
+model.load_weights('_'+DSname+'_results/'+MODEL_TYPE+'.h5')
 
 print('Model Loaded')
 #################################
