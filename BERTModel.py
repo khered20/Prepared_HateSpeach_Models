@@ -134,16 +134,17 @@ output_categories = list(df.columns[[2]]) #classes column
 TARGET_COUNT = len(output_categories)
 
 q_id = tf.keras.layers.Input((MAX_SEQUENCE_LENGTH,), dtype=tf.int32)
-
+a_id = tf.keras.layers.Input((MAX_SEQUENCE_LENGTH,), dtype=tf.int32)
 q_mask = tf.keras.layers.Input((MAX_SEQUENCE_LENGTH,), dtype=tf.int32)
-
+a_mask = tf.keras.layers.Input((MAX_SEQUENCE_LENGTH,), dtype=tf.int32)
 q_atn = tf.keras.layers.Input((MAX_SEQUENCE_LENGTH,), dtype=tf.int32)
-
+a_atn = tf.keras.layers.Input((MAX_SEQUENCE_LENGTH,), dtype=tf.int32)
 q_embedding = TFBmodel(q_id, attention_mask=q_mask, token_type_ids=q_atn)[0]
-
+a_embedding = TFBmodel(a_id, attention_mask=a_mask, token_type_ids=a_atn)[0]
 q = tf.keras.layers.GlobalAveragePooling1D()(q_embedding)
-
+a = tf.keras.layers.GlobalAveragePooling1D()(a_embedding)
 x = tf.keras.layers.Dropout(0.2)(q)
+
 x = tf.keras.layers.Dense(TARGET_COUNT, activation='sigmoid')(x)
 
 model = tf.keras.models.Model(inputs=[q_id, q_mask, q_atn, ], outputs=x)
