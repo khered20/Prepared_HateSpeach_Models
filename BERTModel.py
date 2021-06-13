@@ -29,7 +29,7 @@ from SupportClasses import CleanData
 
 #############################
 
-#MODEL_TYPE = 'roberta-base'
+
 MODEL_TYPE = 'xlnet-base-cased'
 #MODEL_TYPE = 'bert-base-uncased'
 
