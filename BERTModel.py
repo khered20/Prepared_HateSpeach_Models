@@ -1,15 +1,18 @@
-# -*- coding: utf-8 -*-
-"""
-Created on Tue May 18 21:42:59 2021
 
-@author: SmaRt
-"""
+!pip install transformers
+!pip install SentencePiece
+!pip install --upgrade tensorflow
+!pip install preprocessor
+import nltk
+nltk.download('punkt')
+nltk.download('stopwords')
+nltk.download('wordnet')
+
 
 import numpy as np
 import pandas as pd
 
 import re
-import nltk
 from nltk.corpus import stopwords
 from nltk.tokenize import word_tokenize
 from textblob import Word
@@ -18,9 +21,21 @@ from tqdm import tqdm
 import tensorflow as tf
 
 from transformers import BertConfig,TFBertModel,BertTokenizer
+from transformers import XLNetConfig,TFXLNetModel,XLNetTokenizer
+from transformers import RobertaConfig,TFRobertaModel,RobertaTokenizer
+
 from SupportClasses import CleanData
 
+
+#############################
+
+#MODEL_TYPE = 'roberta-base'
+MODEL_TYPE = 'xlnet-base-cased'
+#MODEL_TYPE = 'bert-base-uncased'
+
+#DSname='english_hasoc2019'
 DSname='english_hasoc2019'
+
 filename = 'TESTfile.csv'
 #, nrows=50
 df = pd.read_csv(filename, encoding='latin-1')
@@ -30,7 +45,7 @@ df = pd.read_csv(filename, encoding='latin-1')
 df['Text']=CleanData.cleanAllSample(df['Text'])
 
 
-nltk.download('punkt')
+
 
 
 
@@ -42,9 +57,6 @@ df.loc[(df.label == 2),'label']=0
 ############################
 np.set_printoptions(suppress=True)
 print(tf.__version__)
-#############################
-
-MODEL_TYPE = 'bert-base-uncased'
 #############################
 MAX_SEQUENCE_LENGTH = 200
 #####################################
@@ -107,8 +119,24 @@ def compute_output_arrays(df, columns):
     return np.asarray(df[columns])
 
 
-##################### load tokenizer
-tokenizer = BertTokenizer.from_pretrained('_'+DSname+'_results/'+MODEL_TYPE+'_tokenizer/')
+##################### load tokenizer and bert model
+if MODEL_TYPE == 'bert-base-uncased':
+    config = BertConfig()
+    config.output_hidden_states = False # Set to True to obtain hidden states
+    tokenizer = BertTokenizer.from_pretrained('_'+DSname+'_results/'+MODEL_TYPE+'_tokenizer/')
+    TFBmodel = TFBertModel.from_pretrained(MODEL_TYPE, config=config)
+
+elif MODEL_TYPE == "roberta-base":
+    config = RobertaConfig()
+    config.output_hidden_states = False # Set to True to obtain hidden states
+    tokenizer = RobertaTokenizer.from_pretrained('_'+DSname+'_results/'+MODEL_TYPE+'_tokenizer/')
+    TFBmodel = TFRobertaModel.from_pretrained(MODEL_TYPE, config=config)
+else:
+    config = XLNetConfig()
+    config.output_hidden_states = False # Set to True to obtain hidden states
+    tokenizer = XLNetTokenizer.from_pretrained('_'+DSname+'_results/'+MODEL_TYPE+'_tokenizer/')
+    TFBmodel = TFXLNetModel.from_pretrained(MODEL_TYPE)
+
 print('BertTokenizer Loaded')
 ####################################
 output_categories = list(df.columns[[2]])
@@ -121,13 +149,6 @@ test_outputs = np.asarray(test_outputs).astype(np.float32)
 TARGET_COUNT = len(output_categories)
 
 ###################### load bert model
-config = BertConfig()
-config.output_hidden_states = False # Set to True to obtain hidden states
-
-
-TFBmodel = TFBertModel.from_pretrained('bert-base-uncased', config=config)
-
-
 ###############
 MAX_SEQUENCE_LENGTH = 200
 output_categories = list(df.columns[[2]]) #classes column
@@ -147,10 +168,10 @@ x = tf.keras.layers.Dropout(0.2)(q)
 
 x = tf.keras.layers.Dense(TARGET_COUNT, activation='sigmoid')(x)
 
-model = tf.keras.models.Model(inputs=[q_id, q_mask, q_atn, ], outputs=x)
+model = tf.keras.models.Model(inputs=[q_id, q_mask, q_atn,a_id, a_mask, a_atn ], outputs=x)
 model.load_weights('_'+DSname+'_results/'+MODEL_TYPE+'.h5')
 
-print('Model Loaded')
+print(MODEL_TYPE+' Model Loaded')
 #################################
 
 
@@ -170,7 +191,7 @@ print(confusion_matrix(test_outputs, y_preds))
 ############## test on one sample
 #Pridict classes: 1=hate and 0=natural(no hate)
 #1st sample
-Sample = "O racist, you are not ashamed of yourself!"
+Sample = "You should be at the bottom of a pool you mistook for an elevator. #murderer"
 dfsample = pd.DataFrame(data={'Text':[Sample]})
 dfsample['Text']=CleanData.cleanAllSample(dfsample['Text'])
 input_categories_sample = list(dfsample.columns[[0]])
@@ -217,4 +238,5 @@ if y_preds_sample[0][0] == 1:
     print('Input text contains hate')
 else:
     print('Input text does not contain hate')
+
 
