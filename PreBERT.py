@@ -59,7 +59,7 @@ else:
     format_file='none'
 
 #testset-levela
-MODEL_TYPE = 'xlnet-base-cased'
+
 format_file=sample[len(sample)-4:len(sample)]
 if format_file == '.txt':
     input_file = open('input_text.txt', 'r')
