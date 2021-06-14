@@ -1,12 +1,8 @@
+# -*- coding: utf-8 -*-
+"""
+Created on Sun Jun 13 16:44:39 2021
 
-# !pip install transformers
-# !pip install SentencePiece
-# !pip install --upgrade tensorflow
-# !pip install preprocessor
-# import nltk
-# nltk.download('punkt')
-# nltk.download('stopwords')
-# nltk.download('wordnet')
+"""
 
 
 import numpy as np
@@ -27,38 +23,84 @@ from transformers import RobertaConfig,TFRobertaModel,RobertaTokenizer
 from SupportClasses import CleanData
 
 
-#############################
+import argparse
+parser = argparse.ArgumentParser()
+parser.add_argument('-m', '-MODEL_TYPE', help='Specify model type, bert, xlnet. ex -m bert',
+                    nargs='?', default='None', const='bert-base-uncased')
+parser.add_argument('-s', '-sample', help='Specify text sample or (txt-csv-tsv) file path',
+                    nargs='?', default='None', const='You should specify a text sample for hate speech prediction, ex -s your_text')
+
+args = parser.parse_args()
+
+if args.m == 'None' and args.s == 'None' :
+    print('PreBERT.py -m bert or xlnet -s specify a text or a file path in txt, csv or tsv formats')
+    print('The model -m can be bert: bert-base-uncased and xlnet: xlnet-base-cased')
+    print('If the path -s has txt format file, the system will check if the entire file contains hate')
+    print('If the format is csv or tsv, the system will check:')
+    print('If it has label column, the classification report will be printed.')
+    print('Otherwise, it will check all the samples and save the results in csv file.')
+    sys.exit()
+    
+MODEL_TYPE = 'specify model type, bert, xlnet.'
 
 
+if str(args.m).lower() in ['bert','bert-base', 'bert-base-uncased']:
+    MODEL_TYPE = 'bert-base-uncased'
+elif str(args.m).lower() in ['xlnet','xlnet-base', 'xlnet-base-cased']:
+    MODEL_TYPE = 'xlnet-base-cased'
+      
+
+print(MODEL_TYPE)
+
+sample = args.s.lower()
+if len(sample)>3:
+    format_file=sample[len(sample)-4:len(sample)]
+else:
+    format_file='none'
+
+#testset-levela
 MODEL_TYPE = 'xlnet-base-cased'
-#MODEL_TYPE = 'bert-base-uncased'
+format_file=sample[len(sample)-4:len(sample)]
+if format_file == '.txt':
+    input_file = open('input_text.txt', 'r')
+    lines = input_file.readlines()
+    input_file.close()
+    sample = ''
+    for line in lines:
+        sample = sample + line.strip()
+    print('INPUT TEXT: ' + sample)
+    df = pd.DataFrame(data={'Text':[sample]})
+elif format_file == '.tsv':
+    df = pd.read_csv(sample, sep='\t')
+elif format_file == '.csv':
+    df = pd.read_csv(sample)
+else:
+    df = pd.DataFrame(data={'Text':[sample]})
+    
+
+df=df.rename(columns = {'task_1':'label'})
+df=df.rename(columns = {'LABEL':'label'})
+df=df.rename(columns = {'class':'label'})
+
+df=df.rename(columns = {'text':'Text'})
+df=df.rename(columns = {'tweet':'Text'})
+
+
+############################
+df['Text']=CleanData.cleanAllSample(df['Text'])
+
+
+############################
+MAX_SEQUENCE_LENGTH = 200
+
 
 #DSname='english_hasoc2019'
 DSname='english_hasoc2019'
 
-filename = 'TESTfile.csv'
-#, nrows=50
-df = pd.read_csv(filename, encoding='latin-1')
-
-#df=df.rename(columns = {'Text':'text'})
-
-df['Text']=CleanData.cleanAllSample(df['Text'])
-
-
-
-
-
-
-####### Change labels into 1=hate and 0=natural(no hate)
-df.loc[(df.label == 1),'label']=2
-df.loc[(df.label == 0),'label']=1
-df.loc[(df.label == 2),'label']=0
-
 ############################
 np.set_printoptions(suppress=True)
 print(tf.__version__)
-#############################
-MAX_SEQUENCE_LENGTH = 200
+
 #####################################
 
 
@@ -138,22 +180,55 @@ else:
     TFBmodel = TFXLNetModel.from_pretrained(MODEL_TYPE)
 
 print('BertTokenizer Loaded')
-####################################
 
-output_categories = list(df.columns[[2]])
-input_categories = list(df.columns[[1]])
 
-test_inputs = compute_input_arrays(df, input_categories, tokenizer, MAX_SEQUENCE_LENGTH)
-test_outputs = compute_output_arrays(df, output_categories)
-test_outputs = np.asarray(test_outputs).astype(np.float32)
+#####################################
+if 'label' in df.columns:
+    
+    #df.loc[(df.label in ['NOT','not','false','FALSE','no-hate']),'label']=0
+    #df.loc[(df.label in ['HOF','OFF','true','TRUE','hate']),'label']=1
+    
+    df.loc[(df.label == 'NOT'),'label']=0
+    df.loc[(df.label == 'not'),'label']=0
+    df.loc[(df.label == 'false'),'label']=0
+    df.loc[(df.label == 'no-hate'),'label']=0
+    
+    df.loc[(df.label == 'HOF'),'label']=1
+    df.loc[(df.label == 'OFF'),'label']=1
+    df.loc[(df.label == 'true'),'label']=1
+    df.loc[(df.label == 'hate'),'label']=1
+    
+    # output_categories = list(df.columns[[2]])
+    # input_categories = list(df.columns[[1]])
+    output_categories = ['label']
+    input_categories = ['Text']
+    
+    
+    test_inputs = compute_input_arrays(df, input_categories, tokenizer, MAX_SEQUENCE_LENGTH)
+    test_outputs = compute_output_arrays(df, output_categories)
+    
+    # from sklearn.preprocessing import LabelEncoder
+    # Encoder = LabelEncoder()
+    # y = Encoder.fit_transform(test_outputs)
+    #test_outputs=Encoder.inverse_transform(y)
+    
+    
+    
+    test_outputs = np.asarray(test_outputs).astype(np.float32)
+    
+    TARGET_COUNT = len(output_categories)
+    
+else:
 
-TARGET_COUNT = len(output_categories)
+    input_categories = ['Text']
+    test_inputs = compute_input_arrays(df, input_categories, tokenizer, MAX_SEQUENCE_LENGTH)
+    TARGET_COUNT = 1
+
+
 
 ###################### load bert model
 ###############
-MAX_SEQUENCE_LENGTH = 200
-output_categories = list(df.columns[[2]]) #classes column
-TARGET_COUNT = len(output_categories)
+
 
 q_id = tf.keras.layers.Input((MAX_SEQUENCE_LENGTH,), dtype=tf.int32)
 a_id = tf.keras.layers.Input((MAX_SEQUENCE_LENGTH,), dtype=tf.int32)
@@ -173,71 +248,37 @@ model = tf.keras.models.Model(inputs=[q_id, q_mask, q_atn,a_id, a_mask, a_atn ],
 model.load_weights('_'+DSname+'_results/'+MODEL_TYPE+'.h5')
 
 print(MODEL_TYPE+' Model Loaded')
-#################################
 
 
-y_preds_test=model.predict(test_inputs)
-y_preds =np.round(y_preds_test)
-
-
-"""## Evaluating the results LR model"""
-from sklearn.metrics import classification_report
-report = classification_report( test_outputs, y_preds )
-from sklearn.metrics import confusion_matrix
-print(report)
-print(confusion_matrix(test_outputs, y_preds))
-
-
-#################################
-############## test on one sample
-#Pridict classes: 1=hate and 0=natural(no hate)
-#1st sample
-Sample = "You should be at the bottom of a pool you mistook for an elevator. #murderer"
-dfsample = pd.DataFrame(data={'Text':[Sample]})
-dfsample['Text']=CleanData.cleanAllSample(dfsample['Text'])
-input_categories_sample = list(dfsample.columns[[0]])
-test_inputs_sample = compute_input_arrays(dfsample, input_categories_sample, tokenizer, MAX_SEQUENCE_LENGTH)
-
-y_preds_test_sample=model.predict(test_inputs_sample)
-y_preds_sample =np.round(y_preds_test_sample)
-print('#################')
-print('The prediction of the sample: {',Sample,'} is ',y_preds_sample[0][0])
-print('#################')
-########################
-#2end sample
-Sample = "What kind of human you are ?!"
-dfsample = pd.DataFrame(data={'Text':[Sample]})
-dfsample['Text']=CleanData.cleanAllSample(dfsample['Text'])
-input_categories_sample = list(dfsample.columns[[0]])
-test_inputs_sample = compute_input_arrays(dfsample, input_categories_sample, tokenizer, MAX_SEQUENCE_LENGTH)
-
-y_preds_test_sample=model.predict(test_inputs_sample)
-y_preds_sample =np.round(y_preds_test_sample)
-print('#################')
-print('The prediction of the sample: {',Sample,'} is ',y_preds_sample[0][0])
-print('#################')
-
-
-###########################  Riza's file sample
-input_file = open('input_text.txt', 'r')
-lines = input_file.readlines()
-input_file.close()
-
-sample = ''
-for line in lines:
-    sample = sample + line.strip()
-
-print('INPUT TEXT: ' + sample)
-
-dfsample = pd.DataFrame(data={'Text':[sample]})
-dfsample['cleanedText']=CleanData.cleanAllSample(dfsample['Text'])
-
-#Pridict classes: 1=hate and 0=natural(no hate)
-
-y_preds_sample =np.round(model.predict(test_inputs_sample)) #BERT
-if y_preds_sample[0][0] == 1:
-    print('Input text contains hate')
+if 'label' in df.columns:
+    y_preds_test=model.predict(test_inputs)
+    y_preds =np.round(y_preds_test)
+    
+    
+    """## Evaluating the results LR model"""
+    from sklearn.metrics import classification_report
+    report = classification_report( test_outputs, y_preds )
+    from sklearn.metrics import confusion_matrix
+    print(report)
+    print(confusion_matrix(test_outputs, y_preds))
+    
 else:
-    print('Input text does not contain hate')
 
-
+    y_preds_sample =np.round(model.predict(test_inputs)) #BERT
+    if len(df) == 1:
+        
+        if y_preds_sample[0][0] == 1:
+            print('Input text in ('+sample+') contains hate')
+        else:
+            print('Input text in ('+sample+') does not contain hate')
+    else:
+        df['prediction']=y_preds_sample
+        df.loc[(df.prediction == 0),'prediction']='does not contain hate'
+        df.loc[(df.prediction == 1),'prediction']='contains hate'
+        print(df)
+        save_path='hate_prediction_'+sample[0:len(sample)-4]+'.csv'
+        df.to_csv(save_path)
+        print('The prediction resuts are saved in '+save_path)
+        
+        
+        
