@@ -22,7 +22,7 @@ from transformers import RobertaConfig,TFRobertaModel,RobertaTokenizer
 
 from SupportClasses import CleanData
 
-
+################################################
 import argparse
 parser = argparse.ArgumentParser()
 parser.add_argument('-m', '-MODEL_TYPE', help='Specify model type, bert, xlnet. ex -m bert',
@@ -57,9 +57,11 @@ if len(sample)>3:
     format_file=sample[len(sample)-4:len(sample)]
 else:
     format_file='none'
+##################################
 
-#testset-levela
 
+#sample='input_text.txt'
+#MODEL_TYPE = 'xlnet-base-cased'
 format_file=sample[len(sample)-4:len(sample)]
 if format_file == '.txt':
     input_file = open('input_text.txt', 'r')
