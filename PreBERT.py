@@ -4,9 +4,7 @@ Created on Sun Jun 13 16:44:39 2021
 
 """
 
-import timeit
 
-start = timeit.default_timer()
 
 import numpy as np
 import pandas as pd
@@ -254,38 +252,9 @@ elif MODEL_TYPE == 'xlm-roberta-base':
 print('BertTokenizer Loaded')
 
 
-#####################################
-input_categories = ['Text']
-if MODEL_TYPE == 'roberta-base' or MODEL_TYPE == 'xlm-roberta-base':
-    test_inputs = compute_input_arrays_roberta(df, input_categories, tokenizer, MAX_SEQUENCE_LENGTH)
-else:
-    test_inputs = compute_input_arrays(df, input_categories, tokenizer, MAX_SEQUENCE_LENGTH)
-#####################################
-if 'label' in df.columns:
-    #df.loc[(df.label in ['NOT','not','false','FALSE','no-hate']),'label']=0
-    #df.loc[(df.label in ['HOF','OFF','true','TRUE','hate']),'label']=1
-    df.loc[(df.label == 'NOT'),'label']=0
-    df.loc[(df.label == 'not'),'label']=0
-    df.loc[(df.label == 'false'),'label']=0
-    df.loc[(df.label == 'no-hate'),'label']=0
-    
-    df.loc[(df.label == 'HOF'),'label']=1
-    df.loc[(df.label == 'OFF'),'label']=1
-    df.loc[(df.label == 'true'),'label']=1
-    df.loc[(df.label == 'hate'),'label']=1
-    
-    # output_categories = list(df.columns[[2]])
-    # input_categories = list(df.columns[[1]])
-    output_categories = ['label']
-    test_outputs = compute_output_arrays(df, output_categories)
-    # from sklearn.preprocessing import LabelEncoder
-    # Encoder = LabelEncoder()
-    # y = Encoder.fit_transform(test_outputs)
-    #test_outputs=Encoder.inverse_transform(y)
-    test_outputs = np.asarray(test_outputs).astype(np.float32)
-    TARGET_COUNT = len(output_categories)
-else:
-    TARGET_COUNT = 1
+
+
+TARGET_COUNT = 1
 
 ###################### load bert model
 ###############
@@ -321,8 +290,40 @@ model.load_weights('_'+DSname+'_results/'+MODEL_TYPE+'.h5')
 
 print(MODEL_TYPE+' Model Loaded')
 
+import timeit
+start = timeit.default_timer()
 
+#####################################
+input_categories = ['Text']
+if MODEL_TYPE == 'roberta-base' or MODEL_TYPE == 'xlm-roberta-base':
+    test_inputs = compute_input_arrays_roberta(df, input_categories, tokenizer, MAX_SEQUENCE_LENGTH)
+else:
+    test_inputs = compute_input_arrays(df, input_categories, tokenizer, MAX_SEQUENCE_LENGTH)
+#####################################
 if 'label' in df.columns:
+    #df.loc[(df.label in ['NOT','not','false','FALSE','no-hate']),'label']=0
+    #df.loc[(df.label in ['HOF','OFF','true','TRUE','hate']),'label']=1
+    df.loc[(df.label == 'NOT'),'label']=0
+    df.loc[(df.label == 'not'),'label']=0
+    df.loc[(df.label == 'false'),'label']=0
+    df.loc[(df.label == 'no-hate'),'label']=0
+    
+    df.loc[(df.label == 'HOF'),'label']=1
+    df.loc[(df.label == 'OFF'),'label']=1
+    df.loc[(df.label == 'true'),'label']=1
+    df.loc[(df.label == 'hate'),'label']=1
+    
+    # output_categories = list(df.columns[[2]])
+    # input_categories = list(df.columns[[1]])
+    output_categories = ['label']
+    test_outputs = compute_output_arrays(df, output_categories)
+    # from sklearn.preprocessing import LabelEncoder
+    # Encoder = LabelEncoder()
+    # y = Encoder.fit_transform(test_outputs)
+    #test_outputs=Encoder.inverse_transform(y)
+    test_outputs = np.asarray(test_outputs).astype(np.float32)
+    #TARGET_COUNT = len(output_categories)
+
     y_preds_test=model.predict(test_inputs)
     y_preds =np.round(y_preds_test)
     
@@ -355,4 +356,4 @@ else:
       
 stop = timeit.default_timer()
 runingtime=stop - start
-print('The rinning time in sec: ', round(runingtime, 3))
+print('The running time in sec: ', round(runingtime, 3))
