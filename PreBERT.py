@@ -39,10 +39,11 @@ parser.add_argument('-s', '-sample', help='Specify text sample or (txt-csv-tsv) 
 args = parser.parse_args()
 
 if args.m == 'None' and args.s == 'None' and args.d == 'None':
-    print('~PreBERT.py -d hasoc2019 or hasoc2020 -d specify a the dataset used to train the model')
+    print('~PreBERT.py -d hasoc2019 or hasoc2020')
     print('~PreBERT.py -m bert or xlnet -s specify a text or a file path in txt, csv or tsv formats')
+    print('~model -d specify a the dataset used to train the model')
     print('~The model -m can be bert-base: bert-base-uncased or bert-large: bert-large-uncased or bert-m: bert-base-multilingual-cased')
-    print('or xlnet: xlnet-base-cased')
+    print('or xlnet: xlnet-base-cased or roberta: roberta-base or xlm-r: xlm-roberta')
     print('~If the path -s has txt format file, the system will check if the entire file contains hate')
     print('~If the format is csv or tsv, the system will check:')
     print('~If it has label column, the classification report will be printed.')
