@@ -87,47 +87,7 @@ if DSname == 'None':
 if MODEL_TYPE == 'None':
     MODEL_TYPE = 'bert-base-uncased'
       
-print(DSname)
-print(MODEL_TYPE)
 
-sample = args.s.lower()
-if len(sample)>3:
-    format_file=sample[len(sample)-4:len(sample)]
-else:
-    format_file='none'
-##################################
-
-
-#sample='input_text.txt'
-#MODEL_TYPE = 'xlnet-base-cased'
-format_file=sample[len(sample)-4:len(sample)]
-if format_file == '.txt':
-    input_file = open('input_text.txt', 'r')
-    lines = input_file.readlines()
-    input_file.close()
-    sample = ''
-    for line in lines:
-        sample = sample + line.strip()
-    print('INPUT TEXT: ' + sample)
-    df = pd.DataFrame(data={'Text':[sample]})
-elif format_file == '.tsv':
-    df = pd.read_csv(sample, sep='\t')
-elif format_file == '.csv':
-    df = pd.read_csv(sample)
-else:
-    df = pd.DataFrame(data={'Text':[sample]})
-    
-
-df=df.rename(columns = {'task_1':'label'})
-df=df.rename(columns = {'LABEL':'label'})
-df=df.rename(columns = {'class':'label'})
-
-df=df.rename(columns = {'text':'Text'})
-df=df.rename(columns = {'tweet':'Text'})
-
-
-############################
-df['Text']=CleanData.cleanAllSample(df['Text'])
 
 
 ############################
@@ -290,8 +250,53 @@ model.load_weights('_'+DSname+'_results/'+MODEL_TYPE+'.h5')
 
 print(MODEL_TYPE+' Model Loaded')
 
+print(DSname)
+print(MODEL_TYPE)
+
 import timeit
 start = timeit.default_timer()
+
+
+
+
+sample = args.s.lower()
+if len(sample)>3:
+    format_file=sample[len(sample)-4:len(sample)]
+else:
+    format_file='none'
+##################################
+
+
+#sample='input_text.txt'
+#MODEL_TYPE = 'xlnet-base-cased'
+format_file=sample[len(sample)-4:len(sample)]
+if format_file == '.txt':
+    input_file = open('input_text.txt', 'r')
+    lines = input_file.readlines()
+    input_file.close()
+    sample = ''
+    for line in lines:
+        sample = sample + line.strip()
+    print('INPUT TEXT: ' + sample)
+    df = pd.DataFrame(data={'Text':[sample]})
+elif format_file == '.tsv':
+    df = pd.read_csv(sample, sep='\t')
+elif format_file == '.csv':
+    df = pd.read_csv(sample)
+else:
+    df = pd.DataFrame(data={'Text':[sample]})
+    
+
+df=df.rename(columns = {'task_1':'label'})
+df=df.rename(columns = {'LABEL':'label'})
+df=df.rename(columns = {'class':'label'})
+
+df=df.rename(columns = {'text':'Text'})
+df=df.rename(columns = {'tweet':'Text'})
+
+
+############################
+df['Text']=CleanData.cleanAllSample(df['Text'])
 
 #####################################
 input_categories = ['Text']
