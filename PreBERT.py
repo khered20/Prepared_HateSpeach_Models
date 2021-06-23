@@ -293,7 +293,7 @@ start = timeit.default_timer()
 
 
 
-sample = args.s.lower()
+sample = args.s
 if len(sample)>3:
     format_file=sample[len(sample)-4:len(sample)]
 else:
@@ -304,7 +304,7 @@ else:
 #sample='input_text.txt'
 #MODEL_TYPE = 'xlnet-base-cased'
 format_file=sample[len(sample)-4:len(sample)]
-if format_file == '.txt':
+if format_file.lower() == '.txt':
     input_file = open('input_text.txt', 'r')
     lines = input_file.readlines()
     input_file.close()
@@ -313,20 +313,27 @@ if format_file == '.txt':
         sample = sample + line.strip()
     print('INPUT TEXT: ' + sample)
     df = pd.DataFrame(data={'Text':[sample]})
-elif format_file == '.tsv':
+elif format_file.lower() == '.tsv':
     df = pd.read_csv(sample, sep='\t')
-elif format_file == '.csv':
+elif format_file.lower() == '.csv':
     df = pd.read_csv(sample)
 else:
     df = pd.DataFrame(data={'Text':[sample]})
     
 
 df=df.rename(columns = {'task_1':'label'})
+df=df.rename(columns = {'subtask_a':'label'})
+df=df.rename(columns = {'task_a':'label'})
 df=df.rename(columns = {'LABEL':'label'})
+df=df.rename(columns = {'Label':'label'})
 df=df.rename(columns = {'class':'label'})
 
 df=df.rename(columns = {'text':'Text'})
 df=df.rename(columns = {'tweet':'Text'})
+df=df.rename(columns = {'sample':'Text'})
+df=df.rename(columns = {'texts':'Text'})
+df=df.rename(columns = {'tweets':'Text'})
+df=df.rename(columns = {'samples':'Text'})
 
 
 ############################
