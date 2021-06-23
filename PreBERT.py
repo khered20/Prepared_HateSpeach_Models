@@ -46,9 +46,12 @@ if args.m == 'None' and args.s == 'None' and args.d == 'None':
     print('~If the format is csv or tsv, the system will check:')
     print('~If it has label column, the classification report will be printed.')
     print('~Otherwise, it will check all the samples and save the results in csv file.')
+    quit()
     
     
     
+    
+
 #DSname='specify model type such as hasoc2019, hasoc2020, #####'
 #MODEL_TYPE = 'specify model type such as bert, xlnet, roberta'
 
@@ -69,7 +72,7 @@ else:
 
 if str(args.m).lower() in ['bert','bert-base', 'bert-base-uncased']:
     MODEL_TYPE = 'bert-base-uncased'
-elif str(args.m).lower() in ['bert-base','bert-large-uncased']:
+elif str(args.m).lower() in ['bert-large','bert-large-uncased']:
     MODEL_TYPE = 'bert-large-uncased'
 elif str(args.m).lower() in ['bert-m','bert-base-m', 'bert-base-multilingual' 'bert-base-multilingual-cased']:
     MODEL_TYPE = 'bert-base-multilingual-cased'
@@ -89,7 +92,9 @@ if MODEL_TYPE == 'None':
       
 
 
-
+print(DSname)
+print(MODEL_TYPE)
+print(args.s)
 ############################
 MAX_SEQUENCE_LENGTH = 200
 
@@ -153,6 +158,35 @@ def compute_input_arrays(df, columns, tokenizer, max_sequence_length):
             np.asarray(input_masks_a, dtype=np.int32), 
             np.asarray(input_segments_a, dtype=np.int32)]
 
+
+
+def _convert_to_transformer_inputs_roberta(title, question, answer, tokenizer, max_sequence_length):
+    """Converts tokenized input to ids, masks and segments for transformer (including bert)"""
+    
+    def return_id(str1, str2, truncation_strategy, length):
+        
+        inputs = tokenizer.encode_plus(str1, str2,add_special_tokens=True,max_length=length,truncation_strategy=truncation_strategy)
+        
+        input_ids =  inputs["input_ids"]
+        input_masks = [1] * len(input_ids)
+        input_segments = []
+        padding_length = length - len(input_ids)
+        padding_id = tokenizer.pad_token_id
+        input_ids = input_ids + ([padding_id] * padding_length)
+        input_masks = input_masks + ([0] * padding_length)
+        input_segments = input_segments + ([0] * padding_length)
+        
+        return [input_ids, input_masks, input_segments]
+    
+    input_ids_q, input_masks_q, input_segments_q = return_id(
+        title, None, 'longest_first', max_sequence_length)
+    
+    input_ids_a, input_masks_a, input_segments_a = return_id(
+        '', None, 'longest_first', max_sequence_length)
+        
+    return [input_ids_q, input_masks_q,
+            input_ids_a, input_masks_a]
+
 def compute_input_arrays_roberta(df, columns, tokenizer, max_sequence_length):
     input_ids_q, input_masks_q, input_segments_q = [], [], []
     input_ids_a, input_masks_a, input_segments_a = [], [], []
@@ -160,7 +194,7 @@ def compute_input_arrays_roberta(df, columns, tokenizer, max_sequence_length):
         t, q, a = instance.text, instance.text, instance.text
 
         ids_q, masks_q, ids_a, masks_a = \
-        _convert_to_transformer_inputs(t, q, a, tokenizer, max_sequence_length)
+        _convert_to_transformer_inputs_roberta(t, q, a, tokenizer, max_sequence_length)
         
         input_ids_q.append(ids_q)
         input_masks_q.append(masks_q)
@@ -188,7 +222,7 @@ elif MODEL_TYPE == 'bert-large-uncased' or MODEL_TYPE == 'bert-base-multilingual
     config = BertConfig()
     config.output_hidden_states = False # Set to True to obtain hidden states
     tokenizer = BertTokenizer.from_pretrained('_'+DSname+'_results/'+MODEL_TYPE+'_tokenizer/')
-    bert_model = TFBertModel.from_pretrained(MODEL_TYPE)
+    TFBmodel = TFBertModel.from_pretrained(MODEL_TYPE)
     
 elif MODEL_TYPE == 'xlnet-base-cased':
     config = XLNetConfig()
@@ -250,8 +284,7 @@ model.load_weights('_'+DSname+'_results/'+MODEL_TYPE+'.h5')
 
 print(MODEL_TYPE+' Model Loaded')
 
-print(DSname)
-print(MODEL_TYPE)
+
 
 import timeit
 start = timeit.default_timer()
