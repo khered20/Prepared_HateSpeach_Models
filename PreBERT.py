@@ -20,6 +20,7 @@ from transformers import XLMRobertaConfig,TFXLMRobertaModel,XLMRobertaTokenizer
 
 from SupportClasses import CleanData
 
+import math
 ################################################
 import argparse
 
@@ -191,7 +192,7 @@ def compute_input_arrays_roberta(df, columns, tokenizer, max_sequence_length):
     input_ids_q, input_masks_q, input_segments_q = [], [], []
     input_ids_a, input_masks_a, input_segments_a = [], [], []
     for _, instance in tqdm(df[columns].iterrows()):
-        t, q, a = instance.text, instance.text, instance.text
+        t, q, a = instance.Text, instance.Text, instance.Text
 
         ids_q, masks_q, ids_a, masks_a = \
         _convert_to_transformer_inputs_roberta(t, q, a, tokenizer, max_sequence_length)
@@ -394,4 +395,10 @@ else:
       
 stop = timeit.default_timer()
 runingtime=stop - start
-print('The running time in sec: ', round(runingtime, 3))
+if runingtime>60:
+    mins= math.floor(runingtime/60)
+    secs= runingtime-(mins*60)
+    print('The running time: ',mins,' min and  ', round(secs, 3),' sec')
+else:
+    
+    print('The running time in sec: ', round(runingtime, 3))
