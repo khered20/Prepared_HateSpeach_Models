@@ -241,7 +241,7 @@ elif MODEL_TYPE == 'xlm-roberta-base':
     config = XLMRobertaConfig()
     config.output_hidden_states = False # Set to True to obtain hidden states
     tokenizer = XLMRobertaTokenizer.from_pretrained('_'+DSname+'_results/'+MODEL_TYPE+'_tokenizer/')
-    TFBmodel = TFXLMRobertaModel.from_pretrained(MODEL_TYPE)
+    TFBmodel = TFXLMRobertaModel.from_pretrained("jplu/tf-xlm-roberta-base")
 
 
 print('BertTokenizer Loaded')
@@ -290,7 +290,8 @@ print(MODEL_TYPE+' Model Loaded')
 import timeit
 start = timeit.default_timer()
 
-
+print('Execution time start calculating')
+duration='0'
 
 
 sample = args.s
@@ -322,6 +323,7 @@ else:
     
 
 df=df.rename(columns = {'task_1':'label'})
+df=df.rename(columns = {'task1':'label'})
 df=df.rename(columns = {'subtask_a':'label'})
 df=df.rename(columns = {'task_a':'label'})
 df=df.rename(columns = {'LABEL':'label'})
@@ -372,6 +374,44 @@ if 'label' in df.columns:
 
     y_preds_test=model.predict(test_inputs)
     y_preds =np.round(y_preds_test)
+    from sklearn.metrics import accuracy_score,f1_score
+    Accuracy=accuracy_score(test_outputs, y_preds)
+    ts_ma_f1_score=f1_score(test_outputs, y_preds, average='macro')
+    ts_Wma_f1_score=f1_score(test_outputs, y_preds, average='weighted')
+    #Accuracy= measures.getAcc(test_outputs, y_preds)
+    #ts_cm, ts_accuracy, ts_f1_score, ts_precision, ts_recall,ts_c2_f1_score, ts_c2_precision, ts_c2_recall = measures.getScores(test_outputs, y_preds)
+    #ts_ma_precision, ts_ma_recall, ts_ma_f1_score, ts_Wma_precision, ts_Wma_recall, ts_Wma_f1_score,ts_mi_precision, ts_mi_recall, ts_mi_f1_score = measures.getMacroAndWeightedScores(test_outputs, y_preds)
+    from datetime import datetime,timedelta
+    now=datetime.now()
+    now=now.strftime("%d/%m/%Y %H:%M:%S")
+    
+    stop = timeit.default_timer()
+    duration=stop - start
+    #duration=str(timedelta(seconds=duration))
+    raw_data = {
+                'date-time': [now],
+                'model_tuned_data': [DSname],
+                'model_type': [MODEL_TYPE],
+                'ts_acc': [round(Accuracy, 5)*100],
+                'ts_ma_f1': [round(ts_ma_f1_score, 5)*100],
+                'ts_Wma_f1': [round(ts_Wma_f1_score, 5)*100],
+                'file_name': [sample],
+                'ts_size': [len(test_outputs)],
+                'duration': [round(duration,2)]
+                
+                }
+    df = pd.DataFrame(raw_data,columns = ['date-time','model_tuned_data','model_type','ts_acc',
+                                          'ts_ma_f1','ts_Wma_f1','file_name','ts_size','duration'])
+    
+    evalpath= 'Eval_logfile.csv'
+    from os import path
+    isexist = path.exists(evalpath)
+    if(isexist):
+        evaldata = pd.read_csv (r''+evalpath,encoding='latin1')
+        evaldata=evaldata.append(df)
+    else: 
+        evaldata = df
+    evaldata.to_csv(evalpath,index=False )
     
     
     """## Evaluating the results LR model"""
@@ -380,6 +420,8 @@ if 'label' in df.columns:
     from sklearn.metrics import confusion_matrix
     print(report)
     print(confusion_matrix(test_outputs, y_preds))
+    
+    print(evalpath+' created/updated')
     
 else:
 
@@ -395,7 +437,8 @@ else:
         df.loc[(df.prediction == 0),'prediction']='does not contain hate'
         df.loc[(df.prediction == 1),'prediction']='contains hate'
         print(df)
-        save_path='hate_prediction_'+sample[0:len(sample)-4]+'.csv'
+        resultsfile=re.sub('[^A-Za-z-0-9]', '_', sample[0:len(sample)-4])
+        save_path='hate_prediction_'+resultsfile+'.csv'
         df.to_csv(save_path)
         print('The prediction resuts are saved in '+save_path)
         
@@ -405,7 +448,9 @@ runingtime=stop - start
 if runingtime>60:
     mins= math.floor(runingtime/60)
     secs= runingtime-(mins*60)
-    print('The running time: ',mins,' min and  ', round(secs, 3),' sec')
+    print('The running time:',mins,' min and ', round(secs, 3),'sec')
 else:
     
     print('The running time in sec: ', round(runingtime, 3))
+    
+    
