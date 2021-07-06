@@ -48,6 +48,7 @@ if args.m == 'None' and args.s == 'None' and args.d == 'None':
     print('~If the format is csv or tsv, the system will check:')
     print('~If it has label column, the classification report will be printed.')
     print('~Otherwise, it will check all the samples and save the results in csv file.')
+    print('-fn is the file name of the results to be saved in html and csv. If is not used, the default will be hate_prediction_results')
     quit()
     
     
@@ -447,8 +448,9 @@ else:
         
         
         if args.fn == 'None' or args.fn == '':
-            save_path='hate_prediction_'+resultsfile+'.csv'
-            save_path_html='hate_prediction_last.html'
+            #save_path='hate_prediction_'+resultsfile+'.csv'
+            save_path='hate_prediction_results.csv'
+            save_path_html='hate_prediction_results.html'
         else:
             save_path=args.fn+'.csv'
             save_path_html=args.fn+'.html'
