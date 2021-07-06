@@ -8,7 +8,7 @@ Created on Sun Jun 13 16:44:39 2021
 
 import numpy as np
 import pandas as pd
-
+import re
 
 from tqdm import tqdm
 import tensorflow as tf
@@ -34,7 +34,8 @@ parser.add_argument('-m', '-MODEL_TYPE', help='Specify model type, bert-base, be
                     nargs='?', default='None', const='bert-base-uncased')
 parser.add_argument('-s', '-sample', help='Specify text sample or (txt-csv-tsv) file path',
                     nargs='?', default='None', const='You should specify a text sample for hate speech prediction, ex -s your_text')
-
+parser.add_argument('-fn', '-file_name', help='Specify the file name of the results',
+                    nargs='?', default='None', const='You should specify a name to create a html file, ex -fn my_resuts')
 args = parser.parse_args()
 
 if args.m == 'None' and args.s == 'None' and args.d == 'None':
@@ -86,12 +87,13 @@ elif str(args.m).lower() in ['xlm-r','xlm-roberta', 'xlm-roberta-base']:
 else:
     MODEL_TYPE = args.m
 
+
 if DSname == 'None':
     DSname='english_hasoc2019'
 if MODEL_TYPE == 'None':
     MODEL_TYPE = 'bert-base-uncased'
       
-
+sample = args.s
 
 print(DSname)
 print(MODEL_TYPE)
@@ -99,6 +101,9 @@ print(args.s)
 ############################
 MAX_SEQUENCE_LENGTH = 200
 
+# MODEL_TYPE='xlnet-base-cased'
+# sample='TE1.csv'
+# DSname='english_hasoc2019'
 ############################
 np.set_printoptions(suppress=True)
 print(tf.__version__)
@@ -294,7 +299,7 @@ print('Execution time start calculating')
 duration='0'
 
 
-sample = args.s
+
 if len(sample)>3:
     format_file=sample[len(sample)-4:len(sample)]
 else:
@@ -436,11 +441,28 @@ else:
         df['prediction']=y_preds_sample
         df.loc[(df.prediction == 0),'prediction']='does not contain hate'
         df.loc[(df.prediction == 1),'prediction']='contains hate'
+        df=df[['Text','prediction']]
         print(df)
         resultsfile=re.sub('[^A-Za-z-0-9]', '_', sample[0:len(sample)-4])
-        save_path='hate_prediction_'+resultsfile+'.csv'
+        
+        
+        if args.fn == 'None' or args.fn == '':
+            save_path='hate_prediction_'+resultsfile+'.csv'
+            save_path_html='hate_prediction_last.html'
+        else:
+            save_path=args.fn+'.csv'
+            save_path_html=args.fn+'.html'
+            
         df.to_csv(save_path)
         print('The prediction resuts are saved in '+save_path)
+        #render dataframe as html
+        html = df.to_html()
+        #write html to file
+        
+        text_file = open(save_path_html, "w")
+        text_file.write(html)
+        text_file.close()
+        print('The prediction resuts are saved as html file in '+save_path_html)
         
       
 stop = timeit.default_timer()
