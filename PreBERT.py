@@ -36,6 +36,8 @@ parser.add_argument('-s', '-sample', help='Specify text sample or (txt-csv-tsv) 
                     nargs='?', default='None', const='You should specify a text sample for hate speech prediction, ex -s your_text')
 parser.add_argument('-fn', '-file_name', help='Specify the file name of the results',
                     nargs='?', default='None', const='You should specify a name to create a html file, ex -fn my_resuts')
+parser.add_argument('-mr', '-matrix_report', help='Specify the results type. default: -mr false: save predictions in csv and html files or true: show performance matrix report',
+                    nargs='?', default='None', const='You should specify the results type. false: save predictions in csv and html files or true: show performance matrix report , ex -fn true')
 args = parser.parse_args()
 
 if args.m == 'None' and args.s == 'None' and args.d == 'None':
@@ -49,6 +51,8 @@ if args.m == 'None' and args.s == 'None' and args.d == 'None':
     print('~If it has label column, the classification report will be printed.')
     print('~Otherwise, it will check all the samples and save the results in csv file.')
     print('-fn is the file name of the results to be saved in html and csv. If is not used, the default will be hate_prediction_results')
+    print('-mr is the matrix_report, the default -mr false: save predictions in csv and html files or true: show performance matrix report')
+
     quit()
     
     
@@ -354,80 +358,83 @@ if MODEL_TYPE == 'roberta-base' or MODEL_TYPE == 'xlm-roberta-base':
 else:
     test_inputs = compute_input_arrays(df, input_categories, tokenizer, MAX_SEQUENCE_LENGTH)
 #####################################
-if 'label' in df.columns:
-    #df.loc[(df.label in ['NOT','not','false','FALSE','no-hate']),'label']=0
-    #df.loc[(df.label in ['HOF','OFF','true','TRUE','hate']),'label']=1
-    df.loc[(df.label == 'NOT'),'label']=0
-    df.loc[(df.label == 'not'),'label']=0
-    df.loc[(df.label == 'false'),'label']=0
-    df.loc[(df.label == 'no-hate'),'label']=0
+if str(args.mr).lower() == 'true':
+    if 'label' in df.columns:
+        #df.loc[(df.label in ['NOT','not','false','FALSE','no-hate']),'label']=0
+        #df.loc[(df.label in ['HOF','OFF','true','TRUE','hate']),'label']=1
+        df.loc[(df.label == 'NOT'),'label']=0
+        df.loc[(df.label == 'not'),'label']=0
+        df.loc[(df.label == 'false'),'label']=0
+        df.loc[(df.label == 'no-hate'),'label']=0
+        
+        df.loc[(df.label == 'HOF'),'label']=1
+        df.loc[(df.label == 'OFF'),'label']=1
+        df.loc[(df.label == 'true'),'label']=1
+        df.loc[(df.label == 'hate'),'label']=1
+        
+        # output_categories = list(df.columns[[2]])
+        # input_categories = list(df.columns[[1]])
+        output_categories = ['label']
+        test_outputs = compute_output_arrays(df, output_categories)
+        # from sklearn.preprocessing import LabelEncoder
+        # Encoder = LabelEncoder()
+        # y = Encoder.fit_transform(test_outputs)
+        #test_outputs=Encoder.inverse_transform(y)
+        test_outputs = np.asarray(test_outputs).astype(np.float32)
+        #TARGET_COUNT = len(output_categories)
     
-    df.loc[(df.label == 'HOF'),'label']=1
-    df.loc[(df.label == 'OFF'),'label']=1
-    df.loc[(df.label == 'true'),'label']=1
-    df.loc[(df.label == 'hate'),'label']=1
-    
-    # output_categories = list(df.columns[[2]])
-    # input_categories = list(df.columns[[1]])
-    output_categories = ['label']
-    test_outputs = compute_output_arrays(df, output_categories)
-    # from sklearn.preprocessing import LabelEncoder
-    # Encoder = LabelEncoder()
-    # y = Encoder.fit_transform(test_outputs)
-    #test_outputs=Encoder.inverse_transform(y)
-    test_outputs = np.asarray(test_outputs).astype(np.float32)
-    #TARGET_COUNT = len(output_categories)
-
-    y_preds_test=model.predict(test_inputs)
-    y_preds =np.round(y_preds_test)
-    from sklearn.metrics import accuracy_score,f1_score
-    Accuracy=accuracy_score(test_outputs, y_preds)
-    ts_ma_f1_score=f1_score(test_outputs, y_preds, average='macro')
-    ts_Wma_f1_score=f1_score(test_outputs, y_preds, average='weighted')
-    #Accuracy= measures.getAcc(test_outputs, y_preds)
-    #ts_cm, ts_accuracy, ts_f1_score, ts_precision, ts_recall,ts_c2_f1_score, ts_c2_precision, ts_c2_recall = measures.getScores(test_outputs, y_preds)
-    #ts_ma_precision, ts_ma_recall, ts_ma_f1_score, ts_Wma_precision, ts_Wma_recall, ts_Wma_f1_score,ts_mi_precision, ts_mi_recall, ts_mi_f1_score = measures.getMacroAndWeightedScores(test_outputs, y_preds)
-    from datetime import datetime,timedelta
-    now=datetime.now()
-    now=now.strftime("%d/%m/%Y %H:%M:%S")
-    
-    stop = timeit.default_timer()
-    duration=stop - start
-    #duration=str(timedelta(seconds=duration))
-    raw_data = {
-                'date-time': [now],
-                'model_tuned_data': [DSname],
-                'model_type': [MODEL_TYPE],
-                'ts_acc': [round(Accuracy, 5)*100],
-                'ts_ma_f1': [round(ts_ma_f1_score, 5)*100],
-                'ts_Wma_f1': [round(ts_Wma_f1_score, 5)*100],
-                'file_name': [sample],
-                'ts_size': [len(test_outputs)],
-                'duration': [round(duration,2)]
-                
-                }
-    df = pd.DataFrame(raw_data,columns = ['date-time','model_tuned_data','model_type','ts_acc',
-                                          'ts_ma_f1','ts_Wma_f1','file_name','ts_size','duration'])
-    
-    evalpath= 'Eval_logfile.csv'
-    from os import path
-    isexist = path.exists(evalpath)
-    if(isexist):
-        evaldata = pd.read_csv (r''+evalpath,encoding='latin1')
-        evaldata=evaldata.append(df)
-    else: 
-        evaldata = df
-    evaldata.to_csv(evalpath,index=False )
-    
-    
-    """## Evaluating the results LR model"""
-    from sklearn.metrics import classification_report
-    report = classification_report( test_outputs, y_preds )
-    from sklearn.metrics import confusion_matrix
-    print(report)
-    print(confusion_matrix(test_outputs, y_preds))
-    
-    print(evalpath+' created/updated')
+        y_preds_test=model.predict(test_inputs)
+        y_preds =np.round(y_preds_test)
+        from sklearn.metrics import accuracy_score,f1_score
+        Accuracy=accuracy_score(test_outputs, y_preds)
+        ts_ma_f1_score=f1_score(test_outputs, y_preds, average='macro')
+        ts_Wma_f1_score=f1_score(test_outputs, y_preds, average='weighted')
+        #Accuracy= measures.getAcc(test_outputs, y_preds)
+        #ts_cm, ts_accuracy, ts_f1_score, ts_precision, ts_recall,ts_c2_f1_score, ts_c2_precision, ts_c2_recall = measures.getScores(test_outputs, y_preds)
+        #ts_ma_precision, ts_ma_recall, ts_ma_f1_score, ts_Wma_precision, ts_Wma_recall, ts_Wma_f1_score,ts_mi_precision, ts_mi_recall, ts_mi_f1_score = measures.getMacroAndWeightedScores(test_outputs, y_preds)
+        from datetime import datetime,timedelta
+        now=datetime.now()
+        now=now.strftime("%d/%m/%Y %H:%M:%S")
+        
+        stop = timeit.default_timer()
+        duration=stop - start
+        #duration=str(timedelta(seconds=duration))
+        raw_data = {
+                    'date-time': [now],
+                    'model_tuned_data': [DSname],
+                    'model_type': [MODEL_TYPE],
+                    'ts_acc': [round(Accuracy, 5)*100],
+                    'ts_ma_f1': [round(ts_ma_f1_score, 5)*100],
+                    'ts_Wma_f1': [round(ts_Wma_f1_score, 5)*100],
+                    'file_name': [sample],
+                    'ts_size': [len(test_outputs)],
+                    'duration': [round(duration,2)]
+                    
+                    }
+        df = pd.DataFrame(raw_data,columns = ['date-time','model_tuned_data','model_type','ts_acc',
+                                              'ts_ma_f1','ts_Wma_f1','file_name','ts_size','duration'])
+        
+        evalpath= 'Eval_logfile.csv'
+        from os import path
+        isexist = path.exists(evalpath)
+        if(isexist):
+            evaldata = pd.read_csv (r''+evalpath,encoding='latin1')
+            evaldata=evaldata.append(df)
+        else: 
+            evaldata = df
+        evaldata.to_csv(evalpath,index=False )
+        
+        
+        """## Evaluating the results LR model"""
+        from sklearn.metrics import classification_report
+        report = classification_report( test_outputs, y_preds )
+        from sklearn.metrics import confusion_matrix
+        print(report)
+        print(confusion_matrix(test_outputs, y_preds))
+        
+        print(evalpath+' created/updated')
+    else:
+        print('Unable to create the performance matrix report becouse the file does not contain label colomn')
     
 else:
 
