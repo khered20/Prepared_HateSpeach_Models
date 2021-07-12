@@ -105,7 +105,8 @@ print(MODEL_TYPE)
 print(args.s)
 ############################
 MAX_SEQUENCE_LENGTH = 200
-
+# args.mr = 'false'
+# args.fn = 'test1'
 # MODEL_TYPE='xlnet-base-cased'
 # sample='TE1.csv'
 # DSname='english_hasoc2019'
@@ -437,8 +438,9 @@ if str(args.mr).lower() == 'true':
         print('Unable to create the performance matrix report becouse the file does not contain label colomn')
     
 else:
-
-    y_preds_sample =np.round(model.predict(test_inputs)) #BERT
+    Probability = model.predict(test_inputs)
+    Probability_preds=np.round(Probability, 5)*100
+    y_preds_sample =np.round(Probability)
     if len(df) == 1:
         
         if y_preds_sample[0][0] == 1:
@@ -446,10 +448,11 @@ else:
         else:
             print('Input text in ('+sample+') does not contain hate')
     else:
-        df['prediction']=y_preds_sample
-        df.loc[(df.prediction == 0),'prediction']='does not contain hate'
-        df.loc[(df.prediction == 1),'prediction']='contains hate'
-        df=df[['Text','prediction']]
+        df['Prediction']=y_preds_sample
+        df['Probability']=np.round(Probability_preds, 5)
+        df.loc[(df.Prediction == 0),'Prediction']='does not contain hate'
+        df.loc[(df.Prediction == 1),'Prediction']='contains hate'
+        df=df[['Text','Prediction','Probability']]
         print(df)
         resultsfile=re.sub('[^A-Za-z-0-9]', '_', sample[0:len(sample)-4])
         
