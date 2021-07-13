@@ -459,7 +459,7 @@ else:
         df.loc[(df.Prediction == 0),'Prediction']='does not contain hate'
         df.loc[(df.Prediction == 1),'Prediction']='contains hate'
         df=df[['Text','Prediction','Hate score']]
-        print(df)
+        #print(df)
         resultsfile=re.sub('[^A-Za-z-0-9]', '_', sample[0:len(sample)-4])
         
         
