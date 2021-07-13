@@ -18,12 +18,18 @@ from transformers import XLNetConfig,TFXLNetModel,XLNetTokenizer
 from transformers import RobertaConfig,TFRobertaModel,RobertaTokenizer
 from transformers import XLMRobertaConfig,TFXLMRobertaModel,XLMRobertaTokenizer
 
-from SupportClasses import CleanData
+#from SupportClasses import CleanData
 
 import math
 ################################################
 import argparse
 
+def remove_content(text):
+    text = re.sub(r"http\S+", "", text) #remove urls
+    text=re.sub(r'\S+\.com\S+','',text) #remove urls
+    text=re.sub(r'\@\w+','',text) #remove mentions
+    text =re.sub(r'\#\w+','',text) #remove hashtags
+    return text
 
 
 parser = argparse.ArgumentParser()
@@ -106,7 +112,7 @@ print(args.s)
 ############################
 MAX_SEQUENCE_LENGTH = 200
 args.mr = 'false'
-args.fn = 'f1'
+args.fn = 'test1'
 MODEL_TYPE='xlnet-base-cased'
 sample='multilingual_test.csv'
 DSname='english_hasoc2019'
@@ -350,8 +356,8 @@ df=df.rename(columns = {'samples':'Text'})
 
 
 ############################
-df['Text']=CleanData.cleanAllSample(df['Text'])
-
+#df['Text']=CleanData.cleanAllSample(df['Text'])
+df['Text']=df['Text'].apply(lambda x: remove_content(x))
 #####################################
 input_categories = ['Text']
 if MODEL_TYPE == 'roberta-base' or MODEL_TYPE == 'xlm-roberta-base':
@@ -449,7 +455,7 @@ else:
             print('Input text in ('+sample+') does not contain hate')
     else:
         df['Prediction']=y_preds_sample
-        df['Hate score']=str(Probability_preds)
+        df['Hate score']=Probability_preds
         df.loc[(df.Prediction == 0),'Prediction']='does not contain hate'
         df.loc[(df.Prediction == 1),'Prediction']='contains hate'
         df=df[['Text','Prediction','Hate score']]
@@ -474,7 +480,7 @@ else:
         #write html to file
         
         text_file = open(save_path_html, "w")
-        text_file.write(html)
+        text_file.write(html,encoding="utf_8_sig")
         text_file.close()
         print('The prediction resuts are saved as html file in '+save_path_html)
         
