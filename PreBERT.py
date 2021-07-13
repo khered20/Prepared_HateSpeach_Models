@@ -105,11 +105,11 @@ print(MODEL_TYPE)
 print(args.s)
 ############################
 MAX_SEQUENCE_LENGTH = 200
-# args.mr = 'false'
-# args.fn = 'test1'
-# MODEL_TYPE='xlnet-base-cased'
-# sample='TE1.csv'
-# DSname='english_hasoc2019'
+args.mr = 'false'
+args.fn = 'f1'
+MODEL_TYPE='xlnet-base-cased'
+sample='multilingual_test.csv'
+DSname='english_hasoc2019'
 ############################
 np.set_printoptions(suppress=True)
 print(tf.__version__)
@@ -326,9 +326,9 @@ if format_file.lower() == '.txt':
     print('INPUT TEXT: ' + sample)
     df = pd.DataFrame(data={'Text':[sample]})
 elif format_file.lower() == '.tsv':
-    df = pd.read_csv(sample, sep='\t')
+    df = pd.read_csv(sample, sep='\t',engine='python')
 elif format_file.lower() == '.csv':
-    df = pd.read_csv(sample)
+    df = pd.read_csv(sample,engine='python')
 else:
     df = pd.DataFrame(data={'Text':[sample]})
     
@@ -449,7 +449,7 @@ else:
             print('Input text in ('+sample+') does not contain hate')
     else:
         df['Prediction']=y_preds_sample
-        df['Hate score']=np.round(Probability_preds, 5)
+        df['Hate score']=str(Probability_preds)
         df.loc[(df.Prediction == 0),'Prediction']='does not contain hate'
         df.loc[(df.Prediction == 1),'Prediction']='contains hate'
         df=df[['Text','Prediction','Hate score']]
