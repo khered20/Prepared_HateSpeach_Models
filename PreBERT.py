@@ -111,11 +111,11 @@ print(MODEL_TYPE)
 print(args.s)
 ############################
 MAX_SEQUENCE_LENGTH = 200
-args.mr = 'false'
-args.fn = 'test1'
-MODEL_TYPE='xlnet-base-cased'
-sample='multilingual_test.csv'
-DSname='english_hasoc2019'
+# args.mr = 'false'
+# args.fn = 'test1'
+# MODEL_TYPE='xlnet-base-cased'
+# sample='multilingual_test.csv'
+# DSname='english_hasoc2019'
 ############################
 np.set_printoptions(suppress=True)
 print(tf.__version__)
