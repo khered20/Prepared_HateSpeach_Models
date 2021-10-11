@@ -345,9 +345,17 @@ df=df.rename(columns = {'subtask_a':'label'})
 df=df.rename(columns = {'task_a':'label'})
 df=df.rename(columns = {'LABEL':'label'})
 df=df.rename(columns = {'Label':'label'})
+df=df.rename(columns = {'"Label"':'label'})
+df=df.rename(columns = {' Label':'label'})
+df=df.rename(columns = {'Label ':'label'})
+df=df.rename(columns = {' Label ':'label'})
 df=df.rename(columns = {'class':'label'})
 
 df=df.rename(columns = {'text':'Text'})
+df=df.rename(columns = {'"Text"':'Text'})
+df=df.rename(columns = {' Text':'Text'})
+df=df.rename(columns = {'Text ':'Text'})
+df=df.rename(columns = {' Text ':'Text'})
 df=df.rename(columns = {'tweet':'Text'})
 df=df.rename(columns = {'sample':'Text'})
 df=df.rename(columns = {'texts':'Text'})
@@ -447,7 +455,7 @@ else:
     Probability = model.predict(test_inputs)
     Probability_preds=np.round(Probability, 5)*100
     y_preds_sample =np.round(Probability)
-    if len(df) == 1:
+    if len(df) == 1 and format_file.lower() == '.txt':
         
         if y_preds_sample[0][0] == 1:
             print('Input text in ('+sample+') contains hate')
