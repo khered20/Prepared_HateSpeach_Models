@@ -364,6 +364,7 @@ df=df.rename(columns = {'samples':'Text'})
 
 
 ############################
+df['OrgnText']=df['Text']
 #df['Text']=CleanData.cleanAllSample(df['Text'])
 df['Text']=df['Text'].apply(lambda x: remove_content(x))
 #####################################
@@ -466,6 +467,7 @@ else:
         df['Hate score']=Probability_preds
         df.loc[(df.Prediction == 0),'Prediction']='does not contain hate'
         df.loc[(df.Prediction == 1),'Prediction']='contains hate'
+        df['Text']=df['OrgnText']
         df=df[['Text','Prediction','Hate score']]
         #print(df)
         resultsfile=re.sub('[^A-Za-z-0-9]', '_', sample[0:len(sample)-4])
